@@ -1,0 +1,3 @@
+[submodule "deps/OpenVulkan4D_deps"]
+	path = deps/OpenVulkan4D_deps
+	url = https://github.com/Nelaty/OpenVulkan4D_deps
