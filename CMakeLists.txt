@@ -83,7 +83,7 @@ set(${CMAKE_LIBRARY_OUTPUT_DIRECTORY} ${CMAKE_SOURCE_DIR}/lib)
 # GLOBAL PATHS
 ###########################################################
 set(OVU_RESOURCE_DIR ${CMAKE_SOURCE_DIR}/res)
-set(OVU_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/ov/include/)
+set(OVU_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/ovu/include/)
 
 
 set(CMAKE_CXX_STANDARD 20)
@@ -93,11 +93,15 @@ set(CMAKE_CXX_STANDARD 20)
 ###########################################################
 # Hunter config
 
-hunter_add_package(glm)
+add_subdirectory(deps)
+
+#hunter_add_package(glm)
 find_package(glm REQUIRED)
 
-hunter_add_package(spdlog)
-find_package(spdlog REQUIRED)
+#find_package(Clara REQUIRED)
+
+#hunter_add_package(spdlog)
+#find_package(spdlog REQUIRED)
 
 find_package(Vulkan REQUIRED)
 set(Vulkan_LIBRARIES Vulkan::Vulkan)
@@ -116,17 +120,20 @@ if(${BUILD_SYSTEM_WINDOWS})
     set(OVU_DEPENDENCY_LIBRARIES
             glm
             glfw3
-            ${Vulkan_LIBRARIES})
+            ${Vulkan_LIBRARIES}
+            )
 elseif(${BUILD_SYSTEM_APPLE})
     # TBD
     set(OVU_DEPENDENCY_LIBRARIES
             glm
-            ${Vulkan_LIBRARIES})
+            ${Vulkan_LIBRARIES}
+            )
 else()
     set(OVU_DEPENDENCY_LIBRARIES
             glm
             glfw
-            ${Vulkan_LIBRARIES})
+            ${Vulkan_LIBRARIES}
+            )
 endif()
 
 ###########################################################
