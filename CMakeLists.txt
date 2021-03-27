@@ -69,6 +69,7 @@ else()
     endif()
 endif()
 
+set(CMAKE_CXX_STANDARD 20)
 
 ###########################################################
 # OUTPUT PATHS
@@ -86,53 +87,60 @@ set(OVU_RESOURCE_DIR ${CMAKE_SOURCE_DIR}/res)
 set(OVU_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/ovu/include/)
 
 
-set(CMAKE_CXX_STANDARD 20)
 
 ###########################################################
 # DEPENDENCIES
 ###########################################################
 # Hunter config
 
-add_subdirectory(deps)
-
 #hunter_add_package(glm)
-find_package(glm REQUIRED)
-
 #find_package(Clara REQUIRED)
 
 #hunter_add_package(spdlog)
 #find_package(spdlog REQUIRED)
 
+#hunter_add_package(glfw)
+#find_package(glfw3 REQUIRED)
+
+add_subdirectory(deps)
+
 find_package(Vulkan REQUIRED)
 set(Vulkan_LIBRARIES Vulkan::Vulkan)
 
 
-#hunter_add_package(glfw)
-#find_package(glfw3 REQUIRED)
-
-#target_link_libraries(... PRIVATE glm)
-
-
 # Dependency variables
 set(OVU_DEPENDENCY_INCLUDE_DIR ${VULKAN_INCLUDE_DIR})
+set(OVU_COMMON_LIBRARIES
+        glm
+        fmt
+        spdlog
+        #json
+        #Clara
+        )
 
 if(${BUILD_SYSTEM_WINDOWS})
     set(OVU_DEPENDENCY_LIBRARIES
-            glm
             glfw3
             ${Vulkan_LIBRARIES}
+            ${OVU_COMMON_LIBRARIES}
             )
 elseif(${BUILD_SYSTEM_APPLE})
-    # TBD
     set(OVU_DEPENDENCY_LIBRARIES
-            glm
+            glfw
             ${Vulkan_LIBRARIES}
+            ${OVU_COMMON_LIBRARIES}
             )
 else()
     set(OVU_DEPENDENCY_LIBRARIES
-            glm
             glfw
+            dl
+            pthread
+            X11
+            Xxf86vm
+            Xrandr
+            Xi
             ${Vulkan_LIBRARIES}
+            ${OVU_COMMON_LIBRARIES}
             )
 endif()
 
