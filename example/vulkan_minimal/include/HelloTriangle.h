@@ -16,9 +16,32 @@
 #include <vector>
 #include <algorithm>
 
-const uint32_t VERSION_MAJOR = 1;
-const uint32_t VERSION_MINOR = 0;
-const uint32_t VERSION_PATCH = 0;
+struct VersionInfo {
+    VersionInfo(uint32_t major, uint32_t minor,
+        uint32_t patch, uint32_t revision)
+        : m_major{major},
+        m_minor{minor},
+        m_patch{patch},
+        m_revision{revision}{
+    }
+
+    uint32_t toVulkanVersion() const {
+        return VK_MAKE_VERSION(m_major, m_minor, m_patch);
+    }
+
+    std::string toString() const {
+        return fmt::format("{}.{}.{}.{}", m_major, m_minor, m_patch, m_revision);
+    }
+
+    uint32_t m_major;
+    uint32_t m_minor;
+    uint32_t m_patch;
+    uint32_t m_revision;
+};
+
+static const VersionInfo APP_VERSION(1, 0, 0, 0);
+static const VersionInfo ENGINE_VERSION(1, 0, 0, 0);
+static const VersionInfo VULKAN_VERSION(1, 2, 0, 0);
 
 static const std::vector<const char*> VALIDATION_LAYERS = {
     "VK_LAYER_KHRONOS_validation"
@@ -28,8 +51,6 @@ static const std::vector<const char*> VALIDATION_LAYERS = {
 #else
     const bool ENABLE_VALIDATION_LAYERS = true;
 #endif
-
-
 
 class HelloTriangleApplication {
 public:
@@ -45,12 +66,12 @@ public:
     }
 
 private:
-    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
+    static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
                                           const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
                                           const VkAllocationCallbacks* pAllocator,
                                           VkDebugUtilsMessengerEXT* pDebugMessenger);
 
-    void DestroyDebugUtilsMessengerEXT(VkInstance instance,
+    static void DestroyDebugUtilsMessengerEXT(VkInstance instance,
         VkDebugUtilsMessengerEXT debugMessenger,
         const VkAllocationCallbacks* pAllocator);
 
@@ -60,6 +81,7 @@ private:
     void createInstance();
 
     void setupDebugMessenger();
+    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
     std::vector<const char*> getRequiredExtensions(const std::vector<VkExtensionProperties>& availableExtensions);
 

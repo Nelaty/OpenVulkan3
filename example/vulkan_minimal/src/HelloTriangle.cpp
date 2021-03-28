@@ -51,10 +51,10 @@ void HelloTriangleApplication::createInstance()
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Hello Triangle";
-    appInfo.applicationVersion = VK_MAKE_VERSION(VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+    appInfo.applicationVersion = APP_VERSION.toVulkanVersion();
     appInfo.pEngineName = "No Engine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_2;
+    appInfo.engineVersion = ENGINE_VERSION.toVulkanVersion();
+    appInfo.apiVersion = VULKAN_VERSION.toVulkanVersion();
 
     auto extensions = getRequiredExtensions(availableExtensions);
 
@@ -64,13 +64,18 @@ void HelloTriangleApplication::createInstance()
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
     if (ENABLE_VALIDATION_LAYERS) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
         createInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
+
+        populateDebugMessengerCreateInfo(debugCreateInfo);
+        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
     }
     else {
         createInfo.enabledLayerCount = 0;
         createInfo.ppEnabledLayerNames = nullptr;
+        createInfo.pNext = nullptr;
     }
 
     if (vkCreateInstance(&createInfo, nullptr, &m_instance)) {
@@ -150,6 +155,16 @@ void HelloTriangleApplication::setupDebugMessenger()
     if (!ENABLE_VALIDATION_LAYERS) return;
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+    populateDebugMessengerCreateInfo(createInfo);
+
+    if(CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger) != VK_SUCCESS){
+        throw std::runtime_error("failed to set up debug messenger");
+    }
+}
+
+void HelloTriangleApplication::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+{
+    createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
         | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
@@ -159,10 +174,6 @@ void HelloTriangleApplication::setupDebugMessenger()
         | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
     createInfo.pfnUserCallback = debugCallback;
     createInfo.pUserData = nullptr;
-
-    if(CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger) != VK_SUCCESS){
-        throw std::runtime_error("failed to set up debug messenger");
-    }
 }
 
 VkResult HelloTriangleApplication::CreateDebugUtilsMessengerEXT(VkInstance instance,
@@ -187,3 +198,4 @@ void HelloTriangleApplication::DestroyDebugUtilsMessengerEXT(VkInstance instance
         func(instance, debugMessenger, pAllocator);
     }
 }
+
