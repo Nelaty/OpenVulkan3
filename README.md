@@ -1,6 +1,6 @@
 # OpenVulkan4D
 
-OpenVulkan4D is in the progress of becoming an open source 4D graphics engine.
+OpenVulkan3 is in the progress of becoming an open source 3D graphics engine.
 
 ## Dependencies
 
@@ -18,7 +18,7 @@ Download and install the latest [1.2.x Vulkan SDK](https://vulkan.lunarg.com/sdk
 
 **Linux**
 
-    cd OpenVulkan4D/
+    cd OpenVulkan3/
     mkdir build
     cd build
     cmake ..
@@ -26,7 +26,7 @@ Download and install the latest [1.2.x Vulkan SDK](https://vulkan.lunarg.com/sdk
 
 **Window**
 
-    cd OpenVulkan4D/
+    cd OpenVulkan3/
     mkdir build
     cd build
     cmake ..

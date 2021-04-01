@@ -5,7 +5,7 @@ HunterGate(
         URL "https://github.com/cpp-pm/hunter/archive/v0.23.296.tar.gz"
         SHA1 "232f5022ee1d45955a7e8d3e1720f31bac1bb534"
 )
-project(OpenVulkan4D)
+project(OpenVulkan3)
 
 set(PROJECT_SHORT_NAME OVU)
 
