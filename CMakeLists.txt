@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
-include("cmake/HunterGate.cmake")
+#include("cmake/HunterGate.cmake")
 
-HunterGate(
-        URL "https://github.com/cpp-pm/hunter/archive/v0.23.296.tar.gz"
-        SHA1 "232f5022ee1d45955a7e8d3e1720f31bac1bb534"
-)
+#HunterGate(
+#        URL "https://github.com/cpp-pm/hunter/archive/v0.23.296.tar.gz"
+#        SHA1 "232f5022ee1d45955a7e8d3e1720f31bac1bb534"
+#)
 project(OpenVulkan3)
 
 set(PROJECT_SHORT_NAME OVU)
@@ -37,6 +37,18 @@ set(OVU_BUILD_TESTS 1)
 set(OVU_WARNINGS_ALL 1)
 set(OVU_WARNINGS_ANNOYING 0)
 set(OVU_WARNINGS_AS_ERRORS 0)
+
+###########################################################
+# CONFIGURATION FILE
+###########################################################
+set(OVU_VERSION_MAJOR "0")
+set(OVU_VERSION_MINOR "0")
+set(OVU_VERSION_PATCH "1")
+
+set(OVU_CONFIG_PATH "${CMAKE_SOURCE_DIR}/ovu/include/ovu/config/Ovu3Config.h")
+configure_file("${OVU_CONFIG_PATH}.in"
+        "${OVU_CONFIG_PATH}"
+        @ONLY)
 
 ###########################################################
 # COMPILER CONFIGURATION
@@ -166,7 +178,3 @@ if(${OVU_BUILD_TESTS})
     enable_testing()
     add_subdirectory(test)
 endif()
-
-
-
-

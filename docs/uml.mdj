@@ -63,7 +63,7 @@
 											"top": 127,
 											"width": 58.373046875,
 											"height": 13,
-											"text": "AWindow"
+											"text": "WindowBase"
 										},
 										{
 											"_type": "LabelView",
@@ -380,7 +380,7 @@
 					"_parent": {
 						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
 					},
-					"name": "AWindow"
+					"name": "WindowBase"
 				},
 				{
 					"_type": "UMLClass",

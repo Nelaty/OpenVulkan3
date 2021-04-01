@@ -8,40 +8,18 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include <fmt/format.h>
+#include "ovu/config/VersionInfo.h"
 
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
 #include <vector>
 #include <algorithm>
+#include <optional>
 
-struct VersionInfo {
-    VersionInfo(uint32_t major, uint32_t minor,
-        uint32_t patch, uint32_t revision)
-        : m_major{major},
-        m_minor{minor},
-        m_patch{patch},
-        m_revision{revision}{
-    }
-
-    uint32_t toVulkanVersion() const {
-        return VK_MAKE_VERSION(m_major, m_minor, m_patch);
-    }
-
-    std::string toString() const {
-        return fmt::format("{}.{}.{}.{}", m_major, m_minor, m_patch, m_revision);
-    }
-
-    uint32_t m_major;
-    uint32_t m_minor;
-    uint32_t m_patch;
-    uint32_t m_revision;
-};
-
-static const VersionInfo APP_VERSION(1, 0, 0, 0);
-static const VersionInfo ENGINE_VERSION(1, 0, 0, 0);
-static const VersionInfo VULKAN_VERSION(1, 2, 0, 0);
+static const ovu::VersionInfo APP_VERSION(1, 0, 0, 0);
+static const ovu::VersionInfo ENGINE_VERSION(1, 0, 0, 0);
+static const ovu::VersionInfo VULKAN_VERSION(1, 2, 0, 0);
 
 static const std::vector<const char*> VALIDATION_LAYERS = {
     "VK_LAYER_KHRONOS_validation"
@@ -49,8 +27,16 @@ static const std::vector<const char*> VALIDATION_LAYERS = {
 #ifdef NDEBUG
     const bool ENABLE_VALIDATION_LAYERS = false;
 #else
-    const bool ENABLE_VALIDATION_LAYERS = true;
+    const bool ENABLE_VALIDATION_LAYERS = false;
 #endif
+
+struct QueueFamilyIndices {
+    std::optional<uint32_t> m_graphicsFamily;
+
+    bool isComplete(){
+        return m_graphicsFamily.has_value();
+    }
+};
 
 class HelloTriangleApplication {
 public:
@@ -79,10 +65,13 @@ private:
     void initVulkan();
 
     void createInstance();
-
     void setupDebugMessenger();
     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    void pickPhysicalDevice();
+    bool isDeviceSuitable(VkPhysicalDevice device);
+    void createLogicalDevice();
 
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     std::vector<const char*> getRequiredExtensions(const std::vector<VkExtensionProperties>& availableExtensions);
 
     bool checkValidationLayerSupport();
@@ -95,5 +84,9 @@ private:
 
     GLFWwindow* m_window;
     VkInstance m_instance;
+    VkPhysicalDevice m_physicalDevice;
+    VkDevice m_logicalDevice;
+    VkQueue m_graphicsQueue;
+
     VkDebugUtilsMessengerEXT m_debugMessenger;
 };

@@ -3,7 +3,7 @@
  * Copyright (c) 2021 Matthias Gensheimer. All rights reserved.
  */
 
-#include "ovu/AWindow.h"
+#include "ovu/core/WindowBase.h"
 
 namespace ov
 {

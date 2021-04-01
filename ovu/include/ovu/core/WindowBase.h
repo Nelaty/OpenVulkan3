@@ -9,13 +9,16 @@
 namespace ov
 {
     /**
-     * \brief A window
+     * \brief The base window class
      */
-    class AWindow
+    class WindowBase
     {
     public:
+        virtual bool init() = 0;
+        virtual void render() = 0;
+        virtual void cleanup() = 0;
 
-
-
+        virtual void show(){}
+        virtual void hide(){}
     };
 }
