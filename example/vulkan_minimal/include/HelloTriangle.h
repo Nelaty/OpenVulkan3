@@ -24,19 +24,33 @@ static const ovu::VersionInfo VULKAN_VERSION(1, 2, 0, 0);
 static const std::vector<const char*> VALIDATION_LAYERS = {
     "VK_LAYER_KHRONOS_validation"
 };
+
+const std::vector<const char*> DEVICE_EXTENSIONS = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
+
 #ifdef NDEBUG
     const bool ENABLE_VALIDATION_LAYERS = false;
 #else
-    const bool ENABLE_VALIDATION_LAYERS = false;
+    const bool ENABLE_VALIDATION_LAYERS = true;
 #endif
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> m_graphicsFamily;
+    std::optional<uint32_t> m_presentFamily;
 
-    bool isComplete(){
-        return m_graphicsFamily.has_value();
+    bool isComplete() const {
+        return m_graphicsFamily.has_value()
+            && m_presentFamily.has_value();
     }
 };
+
+struct SwapChainSupportDetails {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
+};
+
 
 class HelloTriangleApplication {
 public:
@@ -64,17 +78,32 @@ private:
     void initWindow();
     void initVulkan();
 
+    // Instance and validation layers
     void createInstance();
     void setupDebugMessenger();
     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    bool checkValidationLayerSupport();
+
+    // Physical device
     void pickPhysicalDevice();
     bool isDeviceSuitable(VkPhysicalDevice device);
-    void createLogicalDevice();
 
+    // Logical device
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    void createLogicalDevice();
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     std::vector<const char*> getRequiredExtensions(const std::vector<VkExtensionProperties>& availableExtensions);
 
-    bool checkValidationLayerSupport();
+    // WMI
+    void createSurface();
+
+    // Swap chain
+    void createSwapChain();
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
 
     void mainLoop();
     void cleanup();
@@ -84,9 +113,18 @@ private:
 
     GLFWwindow* m_window;
     VkInstance m_instance;
+    VkDebugUtilsMessengerEXT m_debugMessenger;
     VkPhysicalDevice m_physicalDevice;
     VkDevice m_logicalDevice;
-    VkQueue m_graphicsQueue;
 
-    VkDebugUtilsMessengerEXT m_debugMessenger;
+    VkQueue m_graphicsQueue;
+    VkQueue m_presentQueue;
+
+    VkSurfaceKHR m_surface;
+
+    // Swap chain
+    VkSwapchainKHR m_swapChain;
+    std::vector<VkImage> m_swapChainImages;
+    VkFormat m_swapChainImageFormat;
+    VkExtent2D m_swapChainExtent;
 };

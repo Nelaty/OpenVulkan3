@@ -24,6 +24,10 @@ namespace ovu
             return VK_MAKE_VERSION(m_major, m_minor, m_patch);
         }
 
+        friend std::ostream& operator<<(std::ostream& strm, const VersionInfo& info) {
+            return strm << info.toString();
+        }
+
         std::string toString() const {
             return fmt::format("{}.{}.{}.{}", m_major, m_minor, m_patch, m_revision);
         }

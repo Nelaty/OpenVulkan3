@@ -9,6 +9,13 @@ OpenVulkan3 is in the progress of becoming an open source 3D graphics engine.
 **Arch**
     
     sudo pacman -S vulkan-devel
+
+
+    
+**Ubuntu**
+    
+    sudo apt update
+    sudo apt install vulkan-sdk
     
 **Windows**
 
