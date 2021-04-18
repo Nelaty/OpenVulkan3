@@ -8,9 +8,19 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+
 #include "ovu/config/VersionInfo.h"
 #include "ovu/config/ResourcePathProvider.h"
+#include "ovu/entity/Vertex.h"
+#include "ovu/vulkan/VulkanBuffer.h"
 
+#include <vulkan/vulkan.hpp>
+
+#define GLM_FORCE_RADIANS // TODO: Move to compiler constants
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
+#include <chrono>
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
@@ -58,6 +68,13 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+struct UniformBufferObject
+{
+    alignas(16) glm::mat4 m_model;
+    alignas(16) glm::mat4 m_view;
+    alignas(16) glm::mat4 m_proj;
+};
+
 class HelloTriangleApplication
 {
 public:
@@ -74,15 +91,12 @@ public:
     }
 
 private:
-    // TODO: class VulkanValidationLayerWrapper
-    static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
-                                                 const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-                                                 const VkAllocationCallbacks* pAllocator,
-                                                 VkDebugUtilsMessengerEXT* pDebugMessenger);
 
-    static void DestroyDebugUtilsMessengerEXT(VkInstance instance,
-                                              VkDebugUtilsMessengerEXT debugMessenger,
-                                              const VkAllocationCallbacks* pAllocator);
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+        app->m_framebufferResized = true;
+    }
+
 
     void initWindow();
     void initVulkan();
@@ -121,16 +135,9 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createFramebuffers();
 
-    void recreateSwapChain(){
-        vkDeviceWaitIdle(m_logicalDevice);
+    void recreateSwapChain();
 
-        createSwapChain();
-        createImageViews();
-        createRenderPass();
-        createGraphicsPipeline();
-        createFramebuffers();
-        createCommandBuffers();
-    }
+    void cleanupSwapChain();
 
     // Render pipeline
     void createImageViews();
@@ -139,6 +146,14 @@ private:
 
     static std::vector<char> readFile(const std::string& filename); // Todo: move -> Utility
     VkShaderModule createShaderModule(const std::vector<char>& code);
+
+    // Uniforms
+    void createDescriptorSetLayout();
+    void createDescriptorPool();
+    void createDescriptorSets();
+
+    VkDescriptorPool m_descriptorPool;
+    std::vector<VkDescriptorSet> m_descriptorSets;
 
     // Commands
     void createCommandPool();
@@ -158,6 +173,7 @@ private:
 
     VkSurfaceKHR m_surface;
 
+
     // Swap chain
     VkSwapchainKHR m_swapChain;
     std::vector<VkImage> m_swapChainImages;
@@ -166,8 +182,11 @@ private:
     std::vector<VkImageView> m_swapChainImageViews;
     std::vector<VkFramebuffer> m_swapChainFramebuffers;
 
+    bool m_framebufferResized{false};
+
     // Pipeline
     VkPipeline m_graphicsPipeline;
+    VkDescriptorSetLayout m_descriptorSetLayout;
     VkPipelineLayout m_pipelineLayout;
     VkRenderPass m_renderPass;
 
@@ -181,4 +200,44 @@ private:
     std::vector<VkFence> m_imagesInFlight;
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
+
+    // Vertices
+    const std::vector<Vertex> m_vertices = {
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+    };
+
+    const std::vector<uint16_t> m_indices = {
+        0, 1, 2, 2, 3, 0
+    };
+
+    ovu::VulkanBuffer m_vertexBuffer2;
+
+    VkBuffer m_indexBuffer;
+    VkDeviceMemory m_indexBufferMemory;
+
+    VkBuffer m_vertexBuffer;
+    VkDeviceMemory m_vertexBufferMemory;
+
+
+
+    std::vector<VkBuffer> m_uniformBuffers;
+    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+
+
+    void createVertexBuffers();
+    void createIndexBuffers();
+    void createUniformBuffers();
+
+    void updateUniformBuffer(uint32_t currentImage);
+
+    void createBuffer(VkDeviceSize size,
+                      VkBufferUsageFlags usage,
+                      VkMemoryPropertyFlags properties,
+                      VkBuffer& buffer,
+                      VkDeviceMemory& bufferMemory);
+
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 };
