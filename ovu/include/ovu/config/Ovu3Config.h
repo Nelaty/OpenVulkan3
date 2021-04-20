@@ -8,3 +8,6 @@
 #define OVU_VERSION_MAJOR "0"
 #define OVU_VERSION_MINOR "0"
 #define OVU_VERSION_PATCH "1"
+
+
+#define OVU_LOW_VERTEX_COUNT false

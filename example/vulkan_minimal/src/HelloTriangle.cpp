@@ -4,7 +4,7 @@
  */
 
 #include "HelloTriangle.h"
-#include "ovu/vulkan/ValidationLayers.h"
+#include "ovu/vulkan/debug/ValidationLayers.h"
 
 #include <set>
 
@@ -59,7 +59,7 @@ void HelloTriangleApplication::initVulkan()
 
 void HelloTriangleApplication::createInstance()
 {
-    if (ENABLE_VALIDATION_LAYERS && !checkValidationLayerSupport()) {
+    if (!ovu::debug::ValidationLayers::valid()) {
         throw std::runtime_error("Validation layers requested, but not available");
     }
 
@@ -89,9 +89,8 @@ void HelloTriangleApplication::createInstance()
     createInfo.ppEnabledExtensionNames = extensions.data();
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
-    if (ENABLE_VALIDATION_LAYERS) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
-        createInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
+    if (ovu::debug::ValidationLayers::enabled()) {
+        ovu::debug::ValidationLayers::populateLayerNames(createInfo);
 
         populateDebugMessengerCreateInfo(debugCreateInfo);
         createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
@@ -105,29 +104,6 @@ void HelloTriangleApplication::createInstance()
     if (vkCreateInstance(&createInfo, nullptr, &m_instance)) {
         throw std::runtime_error("ERROR: Create Vulkan instance");
     }
-}
-
-bool HelloTriangleApplication::checkValidationLayerSupport()
-{
-    uint32_t layerCount;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-    std::vector<VkLayerProperties> availableLayers(layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-    bool result = true;
-    for (const char* layerName : VALIDATION_LAYERS) {
-        auto
-            found = std::find_if(availableLayers.begin(), availableLayers.end(), [&](const VkLayerProperties& available)
-        {
-            return strcmp(layerName, available.layerName);
-        });
-        if (found == availableLayers.end()) {
-            std::cerr << "ERROR: Validation layer not supported: " << layerName << "\n";
-            result = false;
-        }
-    }
-    return result;
 }
 
 void HelloTriangleApplication::mainLoop()
@@ -146,11 +122,8 @@ void HelloTriangleApplication::cleanup()
 
     vkDestroyDescriptorSetLayout(m_logicalDevice, m_descriptorSetLayout, nullptr);
 
-    vkDestroyBuffer(m_logicalDevice, m_vertexBuffer, nullptr);
-    vkFreeMemory(m_logicalDevice, m_vertexBufferMemory, nullptr);
-
-    vkDestroyBuffer(m_logicalDevice, m_indexBuffer, nullptr);
-    vkFreeMemory(m_logicalDevice, m_indexBufferMemory, nullptr);
+    m_vertexBuffer.cleanup();
+    m_indexBuffer.cleanup();
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         vkDestroySemaphore(m_logicalDevice, m_renderFinishedSemaphores[i], nullptr);
@@ -162,7 +135,7 @@ void HelloTriangleApplication::cleanup()
 
     vkDestroyDevice(m_logicalDevice, nullptr);
 
-    if (ENABLE_VALIDATION_LAYERS) {
+    if (ovu::debug::ValidationLayers::enabled()) {
         ovu::DestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
     }
 
@@ -194,9 +167,8 @@ void HelloTriangleApplication::cleanupSwapChain()
 
     vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr);
 
-    for(size_t i = 0; i < m_swapChainImages.size(); ++i){
-        vkDestroyBuffer(m_logicalDevice, m_uniformBuffers[i], nullptr);
-        vkFreeMemory(m_logicalDevice, m_uniformBuffersMemory[i], nullptr);
+    for(auto& buffer : m_uniformBuffers){
+        buffer.cleanup();
     }
 
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
@@ -236,7 +208,7 @@ HelloTriangleApplication::getRequiredExtensions(const std::vector<VkExtensionPro
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-    if (ENABLE_VALIDATION_LAYERS) {
+    if (ovu::debug::ValidationLayers::enabled()) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 
@@ -256,7 +228,7 @@ HelloTriangleApplication::getRequiredExtensions(const std::vector<VkExtensionPro
 
 void HelloTriangleApplication::setupDebugMessenger()
 {
-    if (!ENABLE_VALIDATION_LAYERS) return;
+    if (!ovu::debug::ValidationLayers::enabled()) return;
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
     populateDebugMessengerCreateInfo(createInfo);
@@ -372,13 +344,7 @@ void HelloTriangleApplication::createLogicalDevice()
     createInfo.enabledExtensionCount = static_cast<uint32_t>(DEVICE_EXTENSIONS.size());
     createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS.data();
 
-    if (ENABLE_VALIDATION_LAYERS) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
-        createInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
-    }
-    else {
-        createInfo.enabledLayerCount = 0;
-    }
+    ovu::debug::ValidationLayers::populateLayerNames(createInfo);
 
     if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_logicalDevice)) {
         throw std::runtime_error("failed to create logical device!");
@@ -877,10 +843,10 @@ void HelloTriangleApplication::createCommandBuffers()
 
         vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
-        VkBuffer vertexBuffers[] = {m_vertexBuffer};
+        VkBuffer vertexBuffers[] = {m_vertexBuffer.getBuffer()};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(m_commandBuffers[i], m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(m_commandBuffers[i], m_indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT16);
         vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[i], 0, nullptr);
 
         vkCmdDrawIndexed(m_commandBuffers[i],
@@ -996,32 +962,19 @@ void HelloTriangleApplication::createSyncObjects()
 
 void HelloTriangleApplication::createVertexBuffers()
 {
-    VkDeviceSize bufferSize = sizeof(m_vertices[0]) * m_vertices.size();
+    uint32_t bufferSize = sizeof(m_vertices[0]) * m_vertices.size();
 
+    m_vertexBuffer.init(m_physicalDevice,
+                        m_logicalDevice,
+                        bufferSize,
+                        vk::BufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
+                        vk::MemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize,
-                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 stagingBuffer,
-                 stagingBufferMemory);
-
-    void* data;
-    vkMapMemory(m_logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, m_vertices.data(), (size_t)bufferSize);
-    vkUnmapMemory(m_logicalDevice, stagingBufferMemory);
-
-    createBuffer(bufferSize,
-                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                 m_vertexBuffer,
-                 m_vertexBufferMemory);
-
-    copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
-
-    vkDestroyBuffer(m_logicalDevice, stagingBuffer, nullptr);
-    vkFreeMemory(m_logicalDevice, stagingBufferMemory, nullptr);
+    m_vertexBuffer.copyFromStaging(m_logicalDevice,
+                                   m_commandPool,
+                                   m_graphicsQueue,
+                                   const_cast<Vertex*>(m_vertices.data()),
+                                   bufferSize);
 }
 
 uint32_t HelloTriangleApplication::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
@@ -1105,33 +1058,22 @@ void HelloTriangleApplication::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer
 
     vkFreeCommandBuffers(m_logicalDevice, m_commandPool, 1, &commandBuffer);
 }
+
 void HelloTriangleApplication::createIndexBuffers()
 {
-    VkDeviceSize bufferSize = sizeof(m_indices[0]) * m_indices.size();
+    uint32_t bufferSize = sizeof(m_indices[0]) * m_indices.size();
 
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize,
-                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 stagingBuffer,
-                 stagingBufferMemory);
+    m_indexBuffer.init(m_physicalDevice,
+                       m_logicalDevice,
+                       bufferSize,
+                       vk::BufferUsageFlags(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT),
+                       vk::MemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 
-    void* data;
-    vkMapMemory(m_logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, m_indices.data(), bufferSize);
-    vkUnmapMemory(m_logicalDevice, stagingBufferMemory);
-
-    createBuffer(bufferSize,
-                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                 m_indexBuffer,
-                 m_indexBufferMemory);
-
-    copyBuffer(stagingBuffer, m_indexBuffer, bufferSize);
-
-    vkDestroyBuffer(m_logicalDevice, stagingBuffer, nullptr);
-    vkFreeMemory(m_logicalDevice, stagingBufferMemory, nullptr);
+    m_indexBuffer.copyFromStaging(m_logicalDevice,
+                                  m_commandPool,
+                                  m_graphicsQueue,
+                                  const_cast<uint16_t*>(m_indices.data()),
+                                  bufferSize);
 }
 
 void HelloTriangleApplication::createDescriptorSetLayout()
@@ -1157,14 +1099,13 @@ void HelloTriangleApplication::createUniformBuffers()
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
     m_uniformBuffers.resize(m_swapChainImages.size());
-    m_uniformBuffersMemory.resize(m_swapChainImages.size());
 
     for(size_t i = 0; i < m_swapChainImages.size(); ++i){
-        createBuffer(bufferSize,
-                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                     m_uniformBuffers[i],
-                     m_uniformBuffersMemory[i]);
+        m_uniformBuffers[i].init(m_physicalDevice,
+                                 m_logicalDevice,
+                                 bufferSize,
+                                 vk::BufferUsageFlags(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
+                                 vk::MemoryPropertyFlags(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
     }
 }
 
@@ -1187,9 +1128,9 @@ void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage)
     ubo.m_proj[1][1] *= -1;
 
     void* data;
-    vkMapMemory(m_logicalDevice, m_uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0,  &data);
+    vkMapMemory(m_logicalDevice, m_uniformBuffers[currentImage].getMemory(), 0, sizeof(ubo), 0,  &data);
     memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(m_logicalDevice, m_uniformBuffersMemory[currentImage]);
+    vkUnmapMemory(m_logicalDevice, m_uniformBuffers[currentImage].getMemory());
 }
 void HelloTriangleApplication::createDescriptorPool()
 {
@@ -1223,7 +1164,7 @@ void HelloTriangleApplication::createDescriptorSets()
 
     for(size_t i = 0; i < m_swapChainImages.size(); ++i){
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = m_uniformBuffers[i];
+        bufferInfo.buffer = m_uniformBuffers[i].getBuffer();
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 

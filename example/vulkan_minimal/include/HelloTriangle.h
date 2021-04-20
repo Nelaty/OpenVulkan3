@@ -35,19 +35,9 @@ static const ovu::VersionInfo VULKAN_VERSION(1, 2, 0, 0);
 
 static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
-static const std::vector<const char*> VALIDATION_LAYERS = {
-    "VK_LAYER_KHRONOS_validation"
-};
-
 const std::vector<const char*> DEVICE_EXTENSIONS = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
-
-#ifdef NDEBUG
-const bool ENABLE_VALIDATION_LAYERS = false;
-#else
-const bool ENABLE_VALIDATION_LAYERS = true;
-#endif
 
 struct QueueFamilyIndices
 {
@@ -112,7 +102,6 @@ private:
     void createInstance();
     void setupDebugMessenger();
     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-    bool checkValidationLayerSupport();
 
     // Physical device
     void pickPhysicalDevice();
@@ -213,18 +202,13 @@ private:
         0, 1, 2, 2, 3, 0
     };
 
-    ovu::VulkanBuffer m_vertexBuffer2;
 
-    VkBuffer m_indexBuffer;
-    VkDeviceMemory m_indexBufferMemory;
+    ovu::VulkanBuffer m_vertexBuffer;
+    ovu::VulkanBuffer m_indexBuffer;
+    std::vector<ovu::VulkanBuffer> m_uniformBuffers;
 
-    VkBuffer m_vertexBuffer;
-    VkDeviceMemory m_vertexBufferMemory;
-
-
-
-    std::vector<VkBuffer> m_uniformBuffers;
-    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+    //std::vector<VkBuffer> m_uniformBuffers;
+    //std::vector<VkDeviceMemory> m_uniformBuffersMemory;
 
 
     void createVertexBuffers();
@@ -233,11 +217,15 @@ private:
 
     void updateUniformBuffer(uint32_t currentImage);
 
+
     void createBuffer(VkDeviceSize size,
                       VkBufferUsageFlags usage,
                       VkMemoryPropertyFlags properties,
                       VkBuffer& buffer,
                       VkDeviceMemory& bufferMemory);
+
+
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 };
